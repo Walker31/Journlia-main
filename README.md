@@ -7,3 +7,5 @@ Work done:
 4. Dummy SplashScreen Implemented
 5. Still need to implement the roadmap logic in Homepage
 6. Implemented Firebase Auth
+7. Implemented Firestore
+8. Backend Working, still some bugs are there
