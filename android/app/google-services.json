@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "138195559813",
+    "project_id": "journalia-b5e15",
+    "storage_bucket": "journalia-b5e15.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:138195559813:android:f4aaff408c6934bdc950ec",
+        "android_client_info": {
+          "package_name": "com.example.journalia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyT8Tz5DjgxAsPYPYv7ysB8tjRr0c43-8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
