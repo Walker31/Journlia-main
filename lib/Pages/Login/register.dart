@@ -22,7 +22,7 @@ class RegisterPageState extends State<RegisterPage> {
   final TextEditingController passwordController = TextEditingController();
   final Logger logger = Logger();
   final FirebaseAuthService _authService = FirebaseAuthService();
-  
+
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
@@ -59,7 +59,8 @@ class RegisterPageState extends State<RegisterPage> {
                         Navigator.of(context).pop();
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const Login()),
+                          MaterialPageRoute(
+                              builder: (context) => const Login()),
                         );
                       },
                       child: const Text('OK'),

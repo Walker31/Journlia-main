@@ -1,18 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:journalia/Database/user_database.dart';
 import 'package:journalia/Models/users.dart';
 import 'package:journalia/log_page.dart';
-import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../Providers/user_provider.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final Logger _logger = Logger();
-  final LogData log = LogData();
 
   User? get currentUser => _auth.currentUser;
 
-  Future<User?> signInWithEmailPassword(String email, String password) async {
+  Future<User?> signInWithEmailPassword(
+      BuildContext context, String email, String password) async {
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
@@ -21,10 +23,13 @@ class FirebaseAuthService {
       User? user = userCredential.user;
       if (user != null) {
         LogData.addDebugLog('Logged in with Email: $email');
+        // ignore: use_build_context_synchronously  
+        await Provider.of<UsersProvider>(context, listen: false)
+            .setCurrentUser(user.uid);
+        await saveLoginState(); // Save login state after successful login
         return user;
       }
     } on FirebaseAuthException catch (e) {
-      
       LogData.addErrorLog('Firebase Auth Error: ${e.message}');
       rethrow;
     }
@@ -57,12 +62,12 @@ class FirebaseAuthService {
             banned: false,
             phoneNumber: phoneNumber);
 
-        UserDatabaseMethods().addUserDetails(appUser);
+        await UserDatabaseMethods().addUserDetails(appUser);
         // Simulated saving user details, replace with actual logic
         // For example, storing in Firestore or any other database
       }
     } on FirebaseAuthException catch (e) {
-      _logger.d('Firebase Auth Error: ${e.message}');
+      LogData.addErrorLog('Firebase Auth Error: ${e.message}');
       rethrow;
     }
   }
@@ -72,8 +77,14 @@ class FirebaseAuthService {
     await prefs.setBool('isLoggedIn', true);
   }
 
-  void signOut() async {
+  Future<void> clearLoginState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false);
+  }
+
+  Future<void> signOut() async {
     await _auth.signOut();
+    await clearLoginState(); // Clear login state on sign out
     // Additional logic to clear session or navigate to sign-out state
   }
 }

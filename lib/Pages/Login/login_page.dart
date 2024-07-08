@@ -5,10 +5,7 @@ import 'package:journalia/Widgets/base_scaffold.dart';
 import 'package:journalia/Widgets/bottom_nav_bar.dart';
 import 'package:logger/logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../Auth/firebase_auth_services.dart';
-
-// Firebase Authentication Service
 
 // Login Widget
 class Login extends StatefulWidget {
@@ -35,6 +32,7 @@ class LoginPageState extends State<Login> {
       try {
         // Sign in with Firebase Authentication
         User? user = await _authService.signInWithEmailPassword(
+          context,
           enteredEmail,
           enteredPassword,
         );

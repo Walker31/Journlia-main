@@ -25,6 +25,14 @@ class LogPageState extends State<LogPage> {
       body: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
+          leading: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Colors.black,
+            ),
+            color: Colors.black,
+          ),
           backgroundColor: Colors.transparent,
           title: const Text(
             "Journalia",

@@ -3,6 +3,9 @@ import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:journalia/log_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:journalia/Pages/Home/home_page.dart'; // Adjust path as needed
+import 'package:journalia/Database/user_database.dart';
+
+import 'Login/login_page.dart'; // Adjust path as needed
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
@@ -12,6 +15,8 @@ class Splash extends StatefulWidget {
 }
 
 class SplashState extends State<Splash> {
+  Map<String, dynamic>? _currentUser;
+
   Future<void> _checkLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
@@ -22,9 +27,45 @@ class SplashState extends State<Splash> {
 
     // Navigate based on login status
     if (isLoggedIn) {
-      Navigator.pushReplacementNamed(context, '/home');
+      final userId = prefs.getString('userId');
+      if (userId != null) {
+        await fetchCurrentUser(userId);
+        if (_currentUser != null) {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          );
+        } else {
+          if (!mounted) return;
+          LogData.addErrorLog('Error fetching current user details.');
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     } else {
       Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  Future<void> fetchCurrentUser(String userId) async {
+    try {
+      final userData = await UserDatabaseMethods().fetchUser(userId);
+      if (userData != null) {
+        setState(() {
+          _currentUser = {
+            'userId': userData['userId'],
+            'userName': userData['userName'],
+            'email': userData['email'],
+            'phoneNumber': userData['phoneNumber'],
+            'role': userData['role'],
+            // Add other necessary fields as per your user model
+          };
+        });
+      }
+    } catch (e) {
+      LogData.addErrorLog('Error fetching current user details: $e');
     }
   }
 
@@ -69,7 +110,7 @@ class SplashState extends State<Splash> {
           ),
         ],
       ),
-      nextScreen: const HomePage(),
+      nextScreen: _currentUser != null ? const HomePage() : const Login(),
       splashTransition: SplashTransition.fadeTransition,
       backgroundColor: Colors.black,
       splashIconSize: double.infinity,

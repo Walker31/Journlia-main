@@ -5,25 +5,24 @@ import 'package:journalia/Models/article.dart';
 import 'package:journalia/Models/comments.dart';
 import 'package:journalia/Models/users.dart';
 import 'package:journalia/Models/votes.dart';
-import 'package:journalia/Utils/colors.dart';
 import '../../Database/database_service.dart';
 import '../../Utils/constants.dart';
 
-class ArticleCard1 extends StatefulWidget {
+class PostCard extends StatefulWidget {
   final Articles article;
   final Color lastColor;
 
-  const ArticleCard1({
+  const PostCard({
     super.key,
     required this.article,
     required this.lastColor,
   });
 
   @override
-  ArticleCard1State createState() => ArticleCard1State();
+  PostCardState createState() => PostCardState();
 }
 
-class ArticleCard1State extends State<ArticleCard1> {
+class PostCardState extends State<PostCard> {
   int likes = 0;
   int dislikes = 0;
   bool isLiked = false;
@@ -47,7 +46,7 @@ class ArticleCard1State extends State<ArticleCard1> {
       _db.userDatabaseMethods.fetchUser(currentUser!.uid).then((userData) {
         if (userData != null) {
           setState(() {
-            appUser = userData as AppUser;
+            appUser = AppUser.fromMap(userData);
           });
         }
       });
@@ -57,20 +56,29 @@ class ArticleCard1State extends State<ArticleCard1> {
     _fetchArticleData();
   }
 
-  void _fetchArticleData() async {
-    final voteCounts = await _db.voteDatabaseMethods.getVoteCountsForArticle(widget.article.articleId);
-    final commentsStream = await _db.commentDatabaseMethods.getCommentsForArticle(widget.article.articleId);
+  Future<void> _fetchArticleData() async {
+    try {
+      final voteCounts = await _db.voteDatabaseMethods
+          .getVoteCountsForArticle(widget.article.articleId);
+      final commentsStream = await _db.commentDatabaseMethods
+          .getCommentsForArticle(widget.article.articleId);
 
-    setState(() {
-      likes = voteCounts['upvotes'] ?? 0;
-      dislikes = voteCounts['downvotes'] ?? 0;
-    });
-
-    commentsStream.listen((snapshot) {
       setState(() {
-        comments = snapshot.docs.map((doc) => Comments.fromMap(doc.data() as Map<String, dynamic>)).toList();
+        likes = voteCounts['upvotes'] ?? 0;
+        dislikes = voteCounts['downvotes'] ?? 0;
       });
-    });
+
+      commentsStream.listen((snapshot) {
+        setState(() {
+          comments = snapshot.docs
+              .map(
+                  (doc) => Comments.fromMap(doc.data() as Map<String, dynamic>))
+              .toList();
+        });
+      });
+    } catch (error) {
+      // Handle error
+    }
   }
 
   Color getRandomColor(Color lastColor) {
@@ -86,7 +94,8 @@ class ArticleCard1State extends State<ArticleCard1> {
       if (isLiked) {
         likes--;
         // Remove like from Firestore
-        _db.voteDatabaseMethods.removeVote('like_${widget.article.articleId}_${currentUser!.uid}');
+        _db.voteDatabaseMethods
+            .removeVote('like_${widget.article.articleId}_${currentUser!.uid}');
       } else {
         likes++;
         // Add like to Firestore
@@ -96,12 +105,12 @@ class ArticleCard1State extends State<ArticleCard1> {
           articleId: widget.article.articleId,
           voteType: true,
         ));
-
+        // If the user had previously disliked the article, we need to remove that dislike
         if (isDisliked) {
           dislikes--;
           isDisliked = false;
-          // Remove dislike from Firestore
-          _db.voteDatabaseMethods.removeVote('dislike_${widget.article.articleId}_${currentUser!.uid}');
+          _db.voteDatabaseMethods.removeVote(
+              'dislike_${widget.article.articleId}_${currentUser!.uid}');
         }
       }
       isLiked = !isLiked;
@@ -113,7 +122,8 @@ class ArticleCard1State extends State<ArticleCard1> {
       if (isDisliked) {
         dislikes--;
         // Remove dislike from Firestore
-        _db.voteDatabaseMethods.removeVote('dislike_${widget.article.articleId}_${currentUser!.uid}');
+        _db.voteDatabaseMethods.removeVote(
+            'dislike_${widget.article.articleId}_${currentUser!.uid}');
       } else {
         dislikes++;
         // Add dislike to Firestore
@@ -123,12 +133,12 @@ class ArticleCard1State extends State<ArticleCard1> {
           articleId: widget.article.articleId,
           voteType: false,
         ));
-
+        // If the user had previously liked the article, we need to remove that like
         if (isLiked) {
           likes--;
           isLiked = false;
-          // Remove like from Firestore
-          _db.voteDatabaseMethods.removeVote('like_${widget.article.articleId}_${currentUser!.uid}');
+          _db.voteDatabaseMethods.removeVote(
+              'like_${widget.article.articleId}_${currentUser!.uid}');
         }
       }
       isDisliked = !isDisliked;
@@ -141,159 +151,127 @@ class ArticleCard1State extends State<ArticleCard1> {
     });
   }
 
-  // ignore: unused_element
-  void _addComment(String comment) {
-    Comments newComment = Comments(
-      updatedAt: DateTime.now(),
-      commentId: 'comment_${DateTime.now().millisecondsSinceEpoch}_${currentUser!.uid}',
-      articleId: widget.article.articleId,
-      userId: currentUser!.uid,
-      content: comment,
-      createdAt: DateTime.now(),
-    );
-
-    // Add comment to Firestore
-    _db.commentDatabaseMethods.addComment(newComment);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Card(
       color: cardColor,
-      margin: const EdgeInsets.symmetric(vertical: 10.0),
-      elevation: 10,
+      elevation: 5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.article.title,
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (widget.article.userId.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      "- ${widget.article.userId}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 10),
-            // Post's Cover Image
-            Container(
-              padding: const EdgeInsets.all(8),
-              height: 150, // Adjust the height as needed
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                image: const DecorationImage(
-                  image: AssetImage('assets/Dummy_image.png'), // Replace with your image asset
-                  fit: BoxFit.cover, // Adjust the fit as needed
-                ),
+                color: Colors.white,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               widget.article.content,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 16,
-                color: textColor,
+                color: Colors.white,
               ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
+            // Like and Dislike buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
+                Row(
                   children: [
                     IconButton(
                       icon: Icon(
-                        isLiked ? Icons.thumb_up_alt : Icons.thumb_up_off_alt,
-                        color: tertiaryColor,
+                        isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                        color: Colors.white,
                       ),
                       onPressed: _toggleLike,
                     ),
-                    const SizedBox(height: 0),
                     Text(
-                      likes.toString(),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: textColor,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        isDisliked ? Icons.thumb_down : Icons.thumb_down_off_alt,
-                        color: tertiaryColor,
-                      ),
-                      onPressed: _toggleDislike,
-                    ),
-                    const SizedBox(height: 0),
-                    Text(
-                      dislikes.toString(),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: textColor,
-                      ),
+                      '$likes',
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ],
                 ),
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.chat_bubble_outline_rounded),
-                      color: tertiaryColor,
-                      onPressed: _toggleComments,
+                      icon: Icon(
+                        isDisliked
+                            ? Icons.thumb_down
+                            : Icons.thumb_down_outlined,
+                        color: Colors.white,
+                      ),
+                      onPressed: _toggleDislike,
                     ),
                     Text(
-                      comments.length.toString(),
-                      style: const TextStyle(fontSize: 16),
+                      '$dislikes',
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ],
                 ),
-                TextButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.share, color: tertiaryColor),
-                  label: const Text(
-                    'Share',
-                    style: TextStyle(color: tertiaryColor),
+                IconButton(
+                  icon: Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.white,
                   ),
+                  onPressed: _toggleComments,
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            if (isExpanded)
-              Column(
-                children: comments
-                    .map((comment) => ListTile(
-                          title: Text(
-                            comment.content,
-                            style: const TextStyle(color: textColor),
-                          ),
-                        ))
-                    .toList(),
+            // Expanded comments section
+            if (isExpanded) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Comments:',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
+              const SizedBox(height: 8),
+              // for (var comment in comments)
+              //   Padding(
+              //     padding: const EdgeInsets.symmetric(vertical: 4.0),
+              //     child: Row(
+              //       children: [
+              //         CircleAvatar(
+              //           child: Text(' '),
+              //         ),
+              //         const SizedBox(width: 8),
+              //         Expanded(
+              //           child: Column(
+              //             crossAxisAlignment: CrossAxisAlignment.start,
+              //             children: [
+              //               Text(
+              //                 comment.authorName,
+              //                 style: const TextStyle(
+              //                   fontWeight: FontWeight.bold,
+              //                   color: Colors.white,
+              //                 ),
+              //               ),
+              //               Text(
+              //                 comment.text,
+              //                 style: const TextStyle(color: Colors.white),
+              //               ),
+              //             ],
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // const SizedBox(height: 16),
+              // // Add new comment input field
+            ],
           ],
         ),
       ),

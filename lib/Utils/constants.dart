@@ -57,7 +57,7 @@ AppBar buildAppBar2(BuildContext context) {
   return AppBar(
     leading: IconButton(
         icon: const Icon(
-          Icons.arrow_back,
+          Icons.arrow_back_ios,
           color: primaryTextColor,
         ),
         onPressed: () => Navigator.pop(context)),

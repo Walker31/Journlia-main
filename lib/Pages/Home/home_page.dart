@@ -10,12 +10,14 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import '../../Providers/user_provider.dart';
 import '../../Widgets/drawer.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
   HomePageState createState() => HomePageState();
 }
+
 class HomePageState extends State<HomePage> {
   Logger logger = Logger();
   String selectedButton = "Home"; // Initial selected button
@@ -28,7 +30,8 @@ class HomePageState extends State<HomePage> {
     });
 
     // Simulate fetching new data or refreshing content
-    await Future.delayed(const Duration(seconds: 2)); // Replace with your data fetching logic
+    await Future.delayed(
+        const Duration(seconds: 2)); // Replace with your data fetching logic
 
     setState(() {
       isRefreshing = false;
@@ -84,7 +87,9 @@ class HomePageState extends State<HomePage> {
                             // Displays the current user's name or "Guest"
                             Consumer<UsersProvider>(
                               builder: (context, usersProvider, child) {
-                                final userName = usersProvider.currentUser?.userName ?? 'Guest';
+                                final userName =
+                                    usersProvider.currentUser?['userName'] ??
+                                        'Guest';
                                 return Text(
                                   userName,
                                   style: const TextStyle(
@@ -103,7 +108,8 @@ class HomePageState extends State<HomePage> {
                             padding: const EdgeInsets.all(16.0),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.black26, width: 4.0),
+                              border:
+                                  Border.all(color: Colors.black26, width: 4.0),
                             ),
                             child: const Text(
                               "Streaks",
@@ -133,9 +139,14 @@ class HomePageState extends State<HomePage> {
                           logger.d("Home Pressed");
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: selectedButton == "Home" ? Colors.white : Colors.grey,
-                          foregroundColor: selectedButton == "Home" ? Colors.black : Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          backgroundColor: selectedButton == "Home"
+                              ? Colors.white
+                              : Colors.grey,
+                          foregroundColor: selectedButton == "Home"
+                              ? Colors.black
+                              : Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 15),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: const BorderSide(color: Colors.black),
@@ -160,11 +171,14 @@ class HomePageState extends State<HomePage> {
                           logger.d("Communities Pressed");
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              selectedButton == "Communities" ? Colors.white : Colors.grey,
-                          foregroundColor:
-                              selectedButton == "Communities" ? Colors.black : Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          backgroundColor: selectedButton == "Communities"
+                              ? Colors.white
+                              : Colors.grey,
+                          foregroundColor: selectedButton == "Communities"
+                              ? Colors.black
+                              : Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 15),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: const BorderSide(color: Colors.transparent),
@@ -200,7 +214,8 @@ class HomePageState extends State<HomePage> {
                     )
                   else
                     SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.3, // Height for the empty space
+                      height: MediaQuery.of(context).size.height *
+                          0.3, // Height for the empty space
                       child: const Center(
                         child: Text(
                           "Additional content placeholder",

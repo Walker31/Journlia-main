@@ -40,7 +40,7 @@ class ArticleDatabaseMethods {
 
   // Update article with partial data
   Future<void> updateArticle(
-    String articleId, Map<String, dynamic> updatedData) async {
+      String articleId, Map<String, dynamic> updatedData) async {
     try {
       await _firestore
           .collection(_articlesCollection)
@@ -57,11 +57,29 @@ class ArticleDatabaseMethods {
     }
   }
 
+  Future<int> getArticleCountByUser(String userId) async {
+    try {
+      // Query the Firestore collection to count articles by userId
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('articles')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      // Return the count of articles
+      return querySnapshot.docs.length;
+    } catch (e) {
+      // Handle error
+      LogData.addErrorLog('Error getting article count: $e');
+      return 0;
+    }
+  }
+
   // Get all articles stream
-  Future<Stream<QuerySnapshot>> getArticles() async {
+  Future<Stream<QuerySnapshot<Object?>>> getArticles(int topicId) async {
     try {
       return _firestore
           .collection(_articlesCollection)
+          .where('topicId', isEqualTo: topicId)
           .orderBy('updatedAt', descending: true)
           .snapshots();
     } catch (e) {
@@ -73,11 +91,11 @@ class ArticleDatabaseMethods {
   }
 
   // Get articles by topic
-  Future<QuerySnapshot> getArticlesByTopic(String topic) async {
+  Future<QuerySnapshot> getArticlesByTopic(int topic) async {
     try {
       return await _firestore
           .collection(_articlesCollection)
-          .where('topic', isEqualTo: topic)
+          .where('topicId', isEqualTo: topic)
           .get();
     } catch (e) {
       Logger().e('Error getting articles by topic: $e');

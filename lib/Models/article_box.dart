@@ -1,4 +1,3 @@
-
 class ArticleBox {
   final String title;
   final String author;
@@ -31,16 +30,16 @@ class ArticleBox {
     };
   }
 
-  // Create an ArticleBox instance from a Map
+  // Create an ArticleBox instance from a Map with null checks
   factory ArticleBox.fromMap(Map<String, dynamic> map) {
     return ArticleBox(
-      articleId: map['articleId'] as String,
-      title: map['title'] as String,
-      author: map['author'] as String,
-      content: map['content'] as String,
-      upVotes: map['upVotes'] as int,
-      downVotes: map['downVotes'] as int,
-      comments: List<String>.from(map['comments']),
+      articleId: map['articleId'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      author: map['author'] as String? ?? '',
+      content: map['content'] as String? ?? '',
+      upVotes: map['upVotes'] as int? ?? 0,
+      downVotes: map['downVotes'] as int? ?? 0,
+      comments: List<String>.from(map['comments'] ?? []),
     );
   }
 }

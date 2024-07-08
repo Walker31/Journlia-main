@@ -1,11 +1,11 @@
 class AppUser {
-  final String userId;
-  final String userName;
-  final String email;
-  final String accessToken;
-  final String phoneNumber;
-  final String role;
-  final bool banned;
+  String userId;
+  String userName;
+  String email;
+  String accessToken;
+  String role;
+  bool banned;
+  String phoneNumber;
 
   AppUser({
     required this.userId,
@@ -17,27 +17,15 @@ class AppUser {
     required this.phoneNumber,
   });
 
-  factory AppUser.fromJson(Map<String, dynamic> json) {
+  factory AppUser.fromMap(Map<String, dynamic> map) {
     return AppUser(
-      userId: json['userId'],
-      userName: json['userName'],
-      email: json['email'],
-      accessToken: json['accessToken'],
-      role: json['role'],
-      banned: json['banned'],
-      phoneNumber: json['phoneNumber'],
-    );
-  }
-
-  static AppUser fromMap(Map<String, dynamic> map) {
-    return AppUser(
-      userId: map['userId'],
-      userName: map['userName'],
-      email: map['email'],
-      accessToken: map['accessToken'],
-      phoneNumber: map['phoneNumber'],
-      role: map['role'],
-      banned: map['banned'],
+      userId: map['userId'] ?? '', // Provide default value if null
+      userName: map['userName'] ?? '',
+      email: map['email'] ?? '',
+      accessToken: map['accessToken'] ?? '',
+      role: map['role'] ?? '',
+      banned: map['banned'] ?? false,
+      phoneNumber: map['phoneNumber'] ?? '',
     );
   }
 
@@ -47,9 +35,9 @@ class AppUser {
       'userName': userName,
       'email': email,
       'accessToken': accessToken,
-      'phoneNumber': phoneNumber,
       'role': role,
       'banned': banned,
+      'phoneNumber': phoneNumber,
     };
   }
 }

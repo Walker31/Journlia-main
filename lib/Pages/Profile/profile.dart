@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart'; // Import Provider package
 import 'package:journalia/Database/article_database.dart';
-import 'package:journalia/Database/user_database.dart';
 import 'package:journalia/Models/article.dart';
 import 'package:journalia/Models/users.dart';
-import 'package:journalia/Pages/Profile/article_card.dart';
 import 'package:journalia/Widgets/base_scaffold.dart';
 import 'package:journalia/Widgets/bottom_nav_bar.dart';
 import 'package:journalia/Widgets/drawer.dart';
-import 'package:journalia/log_page.dart'; // Import your log_page if needed
-import '../../Utils/colors.dart';
-import '../../Utils/constants.dart'; // Adjust the path as necessary
 import 'package:logger/logger.dart';
+import '../../Database/user_database.dart';
+import '../../Providers/user_provider.dart';
+import '../../Utils/colors.dart';
+import '../../Utils/constants.dart';
+import '../../log_page.dart';
+import 'article_card.dart'; // Import your UsersProvider
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -21,32 +23,35 @@ class Profile extends StatefulWidget {
 }
 
 class ProfileState extends State<Profile> {
-  User? currentUser;
-  late AppUser appUser;
   bool isExpanded = false;
   List<Articles> allArticles = [];
   bool isLoading = false;
+  AppUser? appUser;
   MaterialColor lastColor = Colors.red; // Initial color for ArticleCard
   final Logger logger = Logger();
+  int? noOfPosts;
 
   @override
   void initState() {
     super.initState();
-    currentUser = FirebaseAuth.instance.currentUser;
+    final usersProvider = Provider.of<UsersProvider>(context, listen: false);
+    final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      fetchUserData();
-      logger.d("fetching User data");
+      usersProvider.setCurrentUser(currentUser.uid);
+      fetchUserData(currentUser.uid);
     }
   }
 
   // Fetches user data from Firestore
-  void fetchUserData() {
-    logger.d("fetching User data1");
-    UserDatabaseMethods().fetchUser(currentUser!.uid).then((userData) {
-      logger.d(currentUser!.uid);
+  void fetchUserData(String uid) async {
+    logger.d("fetching User data");
+    try {
+      final userData = await UserDatabaseMethods().fetchUser(uid);
+      logger.d(uid);
       logger.d(userData);
-      if (userData != null) {
-        setState(() {
+      setState(() {
+        // Update UI with fetched user data
+        if (userData != null) {
           appUser = AppUser(
             userId: userData['userId'],
             userName: userData['userName'],
@@ -56,28 +61,23 @@ class ProfileState extends State<Profile> {
             banned: userData['banned'],
             phoneNumber: userData['phoneNumber'],
           );
-          logger.d(appUser);
-        });
-      } else {
-        // Handle if user data is not found
-      }
-    }).catchError((error) {
+        }
+      });
+    } catch (error) {
       // Handle error
       LogData.addErrorLog('Error fetching user data: $error');
-    });
+    }
   }
 
   // Fetches user articles from Firestore
-  void getUserArticles() {
+  void getUserArticles(String uid) {
     setState(() {
       isLoading = true;
     });
 
-    logger.d("Start fetching user articles for user ID: ${currentUser!.uid}");
+    logger.d("Start fetching user articles for user ID: $uid");
 
-    ArticleDatabaseMethods()
-        .getUserArticles(currentUser!.uid)
-        .then((querySnapshot) {
+    ArticleDatabaseMethods().getUserArticles(uid).then((querySnapshot) {
       logger.d(
           "Received querySnapshot with ${querySnapshot.docs.length} documents");
 
@@ -92,7 +92,6 @@ class ProfileState extends State<Profile> {
       }).toList();
 
       logger.d("Processed ${articles.length} articles");
-
       setState(() {
         allArticles = articles;
         isLoading = false;
@@ -113,118 +112,172 @@ class ProfileState extends State<Profile> {
   void _toggleposts() {
     setState(() {
       isExpanded = !isExpanded;
-      if (isExpanded) {
-        getUserArticles();
-      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final usersProvider =
+        Provider.of<UsersProvider>(context); // Access UsersProvider
+
     return BaseScaffold(
       body: Scaffold(
         appBar: buildAppBar2(context),
         backgroundColor: Colors.transparent,
         drawer: const CustomDrawer(),
         bottomNavigationBar: const BottomNavBar(),
-        body: Column(
-          children: [
-            const SizedBox(height: 20),
-            // Profile Information Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 25),
-                    // Profile Image and Name Section
-                    Stack(
-                      alignment: Alignment.topCenter,
-                      children: [
-                        Container(
-                          height: 300,
-                          width: 300,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              // Profile Information Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 25),
+                      // Profile Image and Name Section
+                      Stack(
+                        alignment: Alignment.topCenter,
+                        children: [
+                          Container(
+                            height: 300,
+                            width: 300,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 75),
+                                usersProvider.currentUser != null
+                                    ? Column(
+                                        children: [
+                                          Text(
+                                            "Name: ${usersProvider.currentUser?['userName']}",
+                                            style: const TextStyle(
+                                                color: primaryTextColor,
+                                                fontFamily: 'Caveat',
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 24),
+                                          ),
+                                          Text(
+                                            "PhoneNumber: ${usersProvider.currentUser?['phoneNumber']}",
+                                            style: const TextStyle(
+                                                color: primaryTextColor,
+                                                fontFamily: 'Caveat',
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 24),
+                                          ),
+                                          Text(
+                                            "User Type: ${usersProvider.currentUser?['role']}",
+                                            style: const TextStyle(
+                                                color: primaryTextColor,
+                                                fontFamily: 'Caveat',
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 24),
+                                          ),
+                                          Text(
+                                            "No of Posts Published: $noOfPosts",
+                                            style: const TextStyle(
+                                                color: primaryTextColor,
+                                                fontFamily: 'Caveat',
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 24),
+                                          )
+                                        ],
+                                      )
+                                    : const CircularProgressIndicator(), // Show loading indicator while fetching data
+                              ],
+                            ), // Your content here
                           ),
-                          padding: const EdgeInsets.all(16),
-                          child: const Column(), // Your content here
-                        ),
-                        Transform.translate(
-                          offset: const Offset(0, -30),
-                          child: Column(
-                            children: [
-                              // Profile Image
-                              Image.asset('assets/Profile.png'),
-                              const Text(
-                                "N I T", // Adjust text as needed
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 24,
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // User Posts Section
-            if (currentUser != null) ...[
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    // Title for My Posts section
-                    const Text(
-                      "My Posts",
-                      style: TextStyle(
-                          fontFamily: 'Caveat',
-                          fontWeight: FontWeight.bold,
-                          fontSize: 36,
-                          color: primaryTextColor),
-                    ),
-                    IconButton(
-                      color: primaryTextColor,
-                      onPressed: _toggleposts,
-                      icon: Icon(
-                        isExpanded
-                            ? Icons.arrow_drop_up
-                            : Icons.arrow_drop_down,
-                        color: primaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isExpanded)
-                isLoading
-                    ? const CircularProgressIndicator() // Show loading spinner
-                    : allArticles.isEmpty
-                        ? const Center(
-                            child: Text("No Articles Found"),
-                          ) // Show message when no articles
-                        : Expanded(
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: allArticles.length,
-                              itemBuilder: (context, index) {
-                                ArticleCard1(
-                                    article: allArticles[index],
-                                    lastColor: lastColor);
-                                return null;
-                              },
+                          Transform.translate(
+                            offset: const Offset(0, -30),
+                            child: Column(
+                              children: [
+                                // Profile Image
+                                Image.asset('assets/Profile.png'),
+                                const Text(
+                                  "N I T", // Adjust text as needed
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                  ),
+                                )
+                              ],
                             ),
                           ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // User Posts Section
+              if (appUser != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      // Title for My Posts section
+                      const Text(
+                        "My Posts",
+                        style: TextStyle(
+                            fontFamily: 'Caveat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 36,
+                            color: primaryTextColor),
+                      ),
+                      IconButton(
+                        color: primaryTextColor,
+                        onPressed: _toggleposts,
+                        icon: Icon(
+                          isExpanded
+                              ? Icons.arrow_drop_down
+                              : Icons.arrow_drop_up,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isExpanded)
+                  isLoading
+                      ? const CircularProgressIndicator() // Show loading spinner
+                      : allArticles.isEmpty
+                          ? const Center(
+                              child: Text("No Articles Found"),
+                            ) // Show message when no articles
+                          : Container(
+                              padding: const EdgeInsets.all(8),
+                              height: 300,
+                              child: ListView.builder(
+                                shrinkWrap:
+                                    true, // Ensures the list is scrollable
+                                physics: const ClampingScrollPhysics(),
+                                itemCount: allArticles.length,
+                                itemBuilder: (context, index) {
+                                  return Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.8,
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 8.0),
+                                    child: PostCard(
+                                      article: allArticles[index],
+                                      lastColor: getNextColor(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
