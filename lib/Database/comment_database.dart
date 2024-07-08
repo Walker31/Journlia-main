@@ -91,4 +91,30 @@ class CommentDatabaseMethods {
       // Handle error as per your application's requirements
     }
   }
+
+  // Get username for a comment
+  Future<String> getCommentUserName(String commentId) async {
+    try {
+      final commentDoc = await _firestore.collection(_commentsCollection).doc(commentId).get();
+      if (commentDoc.exists) {
+        final commentData = commentDoc.data() as Map<String, dynamic>;
+        final userId = commentData['userId'] as String;
+
+        final userDoc = await _firestore.collection('User').doc(userId).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final userName = userData['userName'] as String;
+          return userName;
+        } else {
+          throw Exception('User not found for comment ID: $commentId');
+        }
+      } else {
+        throw Exception('Comment not found with ID: $commentId');
+      }
+    } catch (e) {
+      LogData.addErrorLog('Error getting comment username: $e');
+      rethrow; // Propagate the error up the call stack
+    }
+  }
+  
 }

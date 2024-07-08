@@ -56,7 +56,7 @@ class FirebaseAuthService {
         AppUser appUser = AppUser(
             userId: user.uid,
             userName: name,
-            email: email,
+            email: email, 
             accessToken: "NITT",
             role: 'User',
             banned: false,

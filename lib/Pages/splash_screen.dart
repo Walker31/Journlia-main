@@ -55,11 +55,11 @@ class SplashState extends State<Splash> {
       if (userData != null) {
         setState(() {
           _currentUser = {
-            'userId': userData['userId'],
-            'userName': userData['userName'],
-            'email': userData['email'],
-            'phoneNumber': userData['phoneNumber'],
-            'role': userData['role'],
+            'userId': userData.userId,
+            'userName': userData.userName,
+            'email': userData.email,
+            'phoneNumber': userData.email,
+            'role': userData.email,
             // Add other necessary fields as per your user model
           };
         });

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:journalia/Database/database_service.dart';
+import 'package:journalia/Models/topic.dart';
 import 'package:journalia/Pages/Home/home_page.dart';
 import 'package:journalia/Widgets/base_scaffold.dart';
 import 'package:journalia/Widgets/bottom_nav_bar.dart';
@@ -23,7 +24,7 @@ class CreatePostPageState extends State<CreatePostPage> {
 
   String? selectedCommunity;
   String selectedTopic = 'Experience Sharing';
-  List<String> topics = [];
+  List<Topic> topics = [];
   bool isLoading = false;
 
   @override
@@ -43,7 +44,7 @@ class CreatePostPageState extends State<CreatePostPage> {
     setState(() {
       isLoading = true;
     });
-    TopicDatabaseMethods().getAllTopics().then((List<String> fetchedTopics) {
+    TopicDatabaseMethods().getAllTopics().then((List<Topic> fetchedTopics) {
       setState(() {
         topics = fetchedTopics;
         isLoading = false;
@@ -82,7 +83,7 @@ class CreatePostPageState extends State<CreatePostPage> {
       await DatabaseMethods()
           .articleDatabaseMethods
           .addArticle(content, title, topicId);
-      LogData.addDebugLog('Post saved: $title');
+      LogData.addDebugLog('Post saved: $title with Topic Id: $topicId');
 
       if (!mounted) return;
 
@@ -326,16 +327,16 @@ class CreatePostPageState extends State<CreatePostPage> {
             ),
             underline: const SizedBox.shrink(),
             value: selectedTopic,
-            items: topics.map((String value) {
+            items: topics.map((Topic value) {
               return DropdownMenuItem<String>(
-                value: value,
+                value: value.topicName,
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                       color: Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(32)),
                   child: Text(
-                    value,
+                    value.topicName,
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
                 ),

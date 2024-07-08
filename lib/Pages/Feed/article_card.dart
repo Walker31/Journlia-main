@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:journalia/Models/article_box.dart';
 import 'package:journalia/Models/comments.dart';
 import 'package:journalia/Models/users.dart';
 import 'package:journalia/Models/votes.dart';
 import 'package:journalia/Utils/colors.dart';
+import 'package:journalia/log_page.dart';
+import 'package:provider/provider.dart';
 import '../../Database/database_service.dart';
+import '../../Providers/user_provider.dart';
 import '../../Utils/constants.dart';
 
 class ArticleCard extends StatefulWidget {
@@ -30,27 +32,37 @@ class ArticleCardState extends State<ArticleCard> {
   bool isDisliked = false;
   bool isExpanded = false;
   late Color cardColor;
-  late User? currentUser;
   late AppUser appUser;
 
   final DatabaseMethods _db = DatabaseMethods();
 
   @override
   void initState() {
+    final usersProvider = Provider.of<UsersProvider>(context, listen: false);
+    LogData.addDebugLog('Article Id: ${widget.article.articleId}');
     super.initState();
     likes = widget.article.upVotes;
     dislikes = widget.article.downVotes;
     cardColor = getRandomColor(widget.lastColor);
 
     // Fetch current user data
-    currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      _db.userDatabaseMethods.fetchUser(currentUser!.uid).then((userData) {
-        if (userData != null) {
-          setState(() {
-            appUser = userData as AppUser;
-          });
-        }
+    _fetchUserData(usersProvider);
+  }
+
+  Future<void> _fetchUserData(UsersProvider usersProvider) async {
+    final currentUser = usersProvider.currentUser;
+    if (currentUser != null && currentUser.role != 'Guest') {
+      final userData =
+          await _db.userDatabaseMethods.fetchUser(currentUser.userId);
+      if (userData != null) {
+        setState(() {
+          appUser = userData;
+        });
+      }
+    } else if (currentUser?.role == 'Guest') {
+      final user = await usersProvider.setAsGuest();
+      setState(() {
+        appUser = user;
       });
     }
   }
@@ -64,28 +76,24 @@ class ArticleCardState extends State<ArticleCard> {
   }
 
   void _toggleLike() {
+    if (appUser.role == 'Guest') {
+      // Show a message or take appropriate action for guest users
+      return;
+    }
+
+// true for like, false for dislike
+
     setState(() {
       if (isLiked) {
         likes--;
-        // Remove like from Firestore
-        _db.voteDatabaseMethods
-            .removeVote('like_${widget.article.articleId}_${currentUser!.uid}');
+        _removeVote('like');
       } else {
         likes++;
-        // Add like to Firestore
-        _db.voteDatabaseMethods.addVote(Vote(
-          voteId: 'like_${widget.article.articleId}_${currentUser!.uid}',
-          userId: currentUser!.uid,
-          articleId: widget.article.articleId,
-          voteType: true,
-        ));
-
+        _addVote('like');
         if (isDisliked) {
           dislikes--;
+          _removeVote('dislike');
           isDisliked = false;
-          // Remove dislike from Firestore
-          _db.voteDatabaseMethods
-              .removeVote('dislike_${widget.article.articleId}_${currentUser!.uid}');
         }
       }
       isLiked = !isLiked;
@@ -93,32 +101,40 @@ class ArticleCardState extends State<ArticleCard> {
   }
 
   void _toggleDislike() {
+    if (appUser.role == 'Guest') {
+      // Show a message or take appropriate action for guest users
+      return;
+    }
+
     setState(() {
       if (isDisliked) {
         dislikes--;
-        // Remove dislike from Firestore
-        _db.voteDatabaseMethods
-            .removeVote('dislike_${widget.article.articleId}_${currentUser!.uid}');
+        _removeVote('dislike');
       } else {
         dislikes++;
-        // Add dislike to Firestore
-        _db.voteDatabaseMethods.addVote(Vote(
-          voteId: 'dislike_${widget.article.articleId}_${currentUser!.uid}',
-          userId: currentUser!.uid,
-          articleId: widget.article.articleId,
-          voteType: false,
-        ));
-
+        _addVote('dislike');
         if (isLiked) {
           likes--;
+          _removeVote('like');
           isLiked = false;
-          // Remove like from Firestore
-          _db.voteDatabaseMethods
-              .removeVote('like_${widget.article.articleId}_${currentUser!.uid}');
         }
       }
       isDisliked = !isDisliked;
     });
+  }
+
+  void _addVote(String voteType) {
+    _db.voteDatabaseMethods.addVote(Vote(
+      voteId: '${voteType}_${widget.article.articleId}_${appUser.userId}',
+      userId: appUser.userId,
+      articleId: widget.article.articleId,
+      voteType: voteType == 'like', // true for like, false for dislike
+    ));
+  }
+
+  void _removeVote(String voteType) {
+    _db.voteDatabaseMethods.removeVote(
+        '${voteType}_${widget.article.articleId}_${appUser.userId}');
   }
 
   void _toggleComments() {
@@ -136,9 +152,9 @@ class ArticleCardState extends State<ArticleCard> {
     Comments newComment = Comments(
       updatedAt: DateTime.now(),
       commentId:
-          'comment_${DateTime.now().millisecondsSinceEpoch}_${currentUser!.uid}',
+          'comment_${DateTime.now().millisecondsSinceEpoch}_${appUser.userId}',
       articleId: widget.article.articleId,
-      userId: currentUser!.uid,
+      userId: appUser.userId,
       content: comment,
       createdAt: DateTime.now(),
     );

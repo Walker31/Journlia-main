@@ -14,6 +14,9 @@ class UserDatabaseMethods {
       'email': user.email,
       'userName': user.userName,
       'phoneNumber': user.phoneNumber,
+      'accessToken': user.accessToken,
+      'banned': user.banned,
+      'role': user.role
     };
     try {
       await _firestore
@@ -29,7 +32,7 @@ class UserDatabaseMethods {
   }
 
   // Fetch user details by userId
-  Future<Map<String, dynamic>?> fetchUser(String uid) async {
+  Future<AppUser?> fetchUser(String uid) async {
     try {
       final snapshot = await _firestore
           .collection(_usersCollection)
@@ -42,13 +45,15 @@ class UserDatabaseMethods {
 
       final user = snapshot.docs.first.data();
       LogData.addDebugLog('User fetched: $uid');
-      return {
-        'userId': user['userId'],
-        'email': user['email'],
-        'userName': user['userName'],
-        'phoneNumber': user['phoneNumber'],
-        'role': user['role'], // Assuming 'role' is a field in your user document
-      };
+
+      return AppUser(
+          userId: user['userId'],
+          userName: user['userName'],
+          email: user['email'],
+          accessToken: user['accessToken'],
+          role: user['role'],
+          banned: user['banned'],
+          phoneNumber: user['phoneNumber']);
     } catch (e) {
       Logger().e('Error fetching user: $e');
       LogData.addErrorLog('Error fetching user: $e');
@@ -103,7 +108,8 @@ class UserDatabaseMethods {
         'email': user['email'],
         'userName': user['userName'],
         'phoneNumber': user['phoneNumber'],
-        'role': user['role'], // Assuming 'role' is a field in your user document
+        'role':
+            user['role'], // Assuming 'role' is a field in your user document
       };
     } catch (e) {
       Logger().e('Error fetching user by email: $e');

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../Models/topic.dart';
 import '../log_page.dart'; // Import your LogData class
 
 class TopicDatabaseMethods {
@@ -11,6 +12,18 @@ class TopicDatabaseMethods {
       return _firestore.collection(_topicsCollection).snapshots();
     } catch (e, stackTrace) {
       LogData.addErrorLog('Error getting topics: $e\n$stackTrace');
+      rethrow; // Rethrow the error to handle it elsewhere if needed
+    }
+  }
+
+  Future<List<Topic>> getAllTopics() async {
+    try {
+      final querySnapshot = await _firestore.collection(_topicsCollection).get();
+      return querySnapshot.docs.map((doc) {
+        return Topic.fromMap(doc.data());
+      }).toList();
+    } catch (e, stackTrace) {
+      LogData.addErrorLog('Error getting all topics: $e\n$stackTrace');
       rethrow; // Rethrow the error to handle it elsewhere if needed
     }
   }
@@ -54,21 +67,6 @@ class TopicDatabaseMethods {
       return null;
     } catch (e, stackTrace) {
       LogData.addErrorLog('Error getting topic name by ID: $e\n$stackTrace');
-      rethrow; // Rethrow the error to handle it elsewhere if needed
-    }
-  }
-
-  /// Retrieves a list of all topics as strings from Firestore.
-  Future<List<String>> getAllTopics() async {
-    try {
-      final querySnapshot =
-          await _firestore.collection(_topicsCollection).get();
-
-      return querySnapshot.docs
-          .map((doc) => doc['topicName'] as String)
-          .toList();
-    } catch (e, stackTrace) {
-      LogData.addErrorLog('Error getting all topics: $e\n$stackTrace');
       rethrow; // Rethrow the error to handle it elsewhere if needed
     }
   }

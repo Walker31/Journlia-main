@@ -88,7 +88,7 @@ class HomePageState extends State<HomePage> {
                             Consumer<UsersProvider>(
                               builder: (context, usersProvider, child) {
                                 final userName =
-                                    usersProvider.currentUser?['userName'] ??
+                                    usersProvider.currentUser?.userName ??
                                         'Guest';
                                 return Text(
                                   userName,

@@ -39,6 +39,11 @@ class CustomDrawerState extends State<CustomDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UsersProvider>(context);
+    bool isAdmin = userProvider.currentUser != null &&
+        userProvider.currentUser!.role == 'Admin';
+    bool isGuest = userProvider.currentUser != null &&
+        userProvider.currentUser!.role == 'Guest';
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -56,18 +61,28 @@ class CustomDrawerState extends State<CustomDrawer> {
               Navigator.pop(context);
             },
           ),
-          ListTile(
-            title: const Text('L O G'),
-            trailing: const Icon(Icons.note),
-            onTap: () {
-              Navigator.pushNamed(context, '/Log');
-            },
-          ),
-          ListTile(
-            title: const Text('Sign Out'),
-            trailing: const Icon(Icons.exit_to_app_rounded),
-            onTap: () => _signOut(context),
-          ),
+          if (isAdmin)
+            ListTile(
+              title: const Text('L O G'),
+              trailing: const Icon(Icons.note),
+              onTap: () {
+                Navigator.pushNamed(context, '/Log');
+              },
+            ),
+          if (isGuest)
+            ListTile(
+              title: const Text('Sign In'),
+              trailing: const Icon(Icons.login),
+              onTap: () {
+                Navigator.of(context).pushNamed('/login');
+              },
+            ),
+          if (!isGuest)
+            ListTile(
+              title: const Text('Sign Out'),
+              trailing: const Icon(Icons.exit_to_app_rounded),
+              onTap: () => _signOut(context),
+            ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Center(

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:journalia/Pages/Login/login_page.dart';
 import 'package:journalia/Utils/colors.dart';
 import 'package:journalia/Widgets/base_scaffold.dart';
-import 'package:journalia/Widgets/bottom_nav_bar.dart';
 import 'package:logger/logger.dart';
 import '../../Auth/firebase_auth_services.dart';
 
@@ -185,7 +184,6 @@ class RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
-        bottomNavigationBar: const BottomNavBar(),
       ),
     );
   }

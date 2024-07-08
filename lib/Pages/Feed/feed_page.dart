@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:journalia/Database/article_database.dart';
 import 'package:journalia/Database/topic_database.dart';
+import 'package:journalia/Models/topic.dart';
 import 'package:journalia/utils/constants.dart';
 import 'package:journalia/widgets/base_scaffold.dart';
 import 'package:journalia/widgets/bottom_nav_bar.dart';
@@ -20,9 +22,10 @@ class FeedPage extends StatefulWidget {
 }
 
 class FeedPageState extends State<FeedPage> {
-  int currentTopicIndex = 0;
+  int currentTopicIndex = 1;
   Logger logger = Logger();
-  List<String> topics = [];
+  List<Topic> topics = [];
+  bool isRefreshing = false;
   TextEditingController searchController = TextEditingController();
   Color lastColor = Colors.red;
   int _selectedIndex = -1;
@@ -39,6 +42,10 @@ class FeedPageState extends State<FeedPage> {
     Colors.blue,
     Colors.green,
     Colors.orange,
+    Colors.cyan,
+    Colors.pink,
+    Colors.deepOrange,
+    Colors.lightGreen,
     Colors.purple
   ];
 
@@ -48,24 +55,42 @@ class FeedPageState extends State<FeedPage> {
     _options = ["Top", "Latest", "Trendy"];
     fetchTopics();
     searchController.addListener(search);
-    controller.addListener(() {
-      setState(() {
-        topContainer = controller.offset > 50 ? 1 : 0;
-      });
-    });
     fetchArticlesStream(); // Fetch the articles stream
   }
 
+  Future<void> handleRefresh() async {
+    setState(() {
+      isRefreshing = true;
+    });
+    // Fetch new data or refresh existing data
+    fetchArticlesStream();
+
+    await Future.delayed(
+        const Duration(seconds: 2)); // Replace with your data fetching logic
+
+    setState(() {
+      isRefreshing = false;
+    });
+  }
+
   void fetchArticlesStream() async {
-    articlesStream = await _articleDb.getArticles(currentTopicIndex);
-    setState(() {}); // Update the state to refresh the UI
+    if (topics.isNotEmpty) {
+      articlesStream =
+          await _articleDb.getArticles(topics[currentTopicIndex].topicId);
+      logger.d('Current Topic Index: $currentTopicIndex');
+      logger.d(articlesStream);
+      setState(() {});
+    } // Update the state to refresh the UI
   }
 
   void fetchTopics() {
-    TopicDatabaseMethods().getAllTopics().then((List<String> fetchedTopics) {
+    TopicDatabaseMethods().getAllTopics().then((List<Topic> fetchedTopics) {
       setState(() {
         topics = fetchedTopics;
       });
+      if (topics.isNotEmpty) {
+        fetchArticlesStream();
+      }
       logger.d("fetching current topics");
       LogData.addDebugLog("fetching current topics");
     }).catchError((error) {
@@ -94,7 +119,7 @@ class FeedPageState extends State<FeedPage> {
     setState(() {
       currentTopicIndex =
           (currentTopicIndex - 1 + topics.length) % topics.length;
-          fetchArticlesStream();
+      fetchArticlesStream();
     });
   }
 
@@ -145,7 +170,8 @@ class FeedPageState extends State<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
-    String currentTopic = topics.isNotEmpty ? topics[currentTopicIndex] : '';
+    String currentTopic =
+        topics.isNotEmpty ? topics[currentTopicIndex].topicName : '';
 
     return BaseScaffold(
       body: Scaffold(
@@ -223,61 +249,67 @@ class FeedPageState extends State<FeedPage> {
               const SizedBox(height: 10),
               filterChipRow,
               const SizedBox(height: 10),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: articlesStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+              if (isRefreshing)
+                const Center(
+                  child: SpinKitFadingCircle(
+                    color: Colors.blue,
+                    size: 50.0,
+                  ),
+                )
+              else
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: articlesStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                    if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
-                    }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
 
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text('No articles found'));
-                    }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text('No articles found'));
+                      }
 
-                    final articles = snapshot.data!.docs.map((doc) {
-                      return ArticleBox.fromMap(
-                          doc.data() as Map<String, dynamic>);
-                    }).toList();
+                      final articles = snapshot.data!.docs.map((doc) {
+                        return ArticleBox.fromMap(
+                            doc.data() as Map<String, dynamic>);
+                      }).toList();
 
-                    return ListView.builder(
-                      controller: controller,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(
-                          bottom: 80, top: 8, left: 8, right: 8),
-                      itemCount: articles.length,
-                      itemBuilder: (context, index) {
-                        final article = articles[index];
-                        Color currentColor = getNextColor(lastColor);
-                        lastColor = currentColor;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedIndex =
-                                  _selectedIndex == index ? -1 : index;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            child: Align(
-                              heightFactor: _selectedIndex == index ? 1 : 0.3,
-                              alignment: Alignment.topCenter,
-                              child: ArticleCard(
-                                article: article,
-                                lastColor: currentColor,
+                      return RefreshIndicator(
+                        onRefresh: handleRefresh,
+                        child: ListView.builder(
+                          controller: controller,
+                          padding: const EdgeInsets.only(
+                              bottom: 80, top: 8, left: 8, right: 8),
+                          itemCount: articles.length,
+                          itemBuilder: (context, index) {
+                            final article = articles[index];
+                            Color currentColor = getNextColor(lastColor);
+                            lastColor = currentColor;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedIndex =
+                                      _selectedIndex == index ? -1 : index;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                child: ArticleCard(
+                                  article: article,
+                                  lastColor: currentColor,
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         ),

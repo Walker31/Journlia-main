@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:journalia/Utils/constants.dart';
 import 'package:logger/logger.dart';
 import '../Auth/firebase_auth_services.dart';
 import '../Models/article.dart';
@@ -71,6 +72,38 @@ class ArticleDatabaseMethods {
       // Handle error
       LogData.addErrorLog('Error getting article count: $e');
       return 0;
+    }
+  }
+
+  Future<String> getArticleAuthorByUser(String articleId) async {
+    try {
+      // Query the Firestore collection to get the article with the specified articleId
+      QuerySnapshot querySnapshot = await _firestore
+          .collection(_articlesCollection)
+          .where('articleId', isEqualTo: articleId)
+          .get();
+
+      // Check if there's exactly one document matching the articleId
+      if (querySnapshot.docs.length == 1) {
+        // Get the authorId from the document
+        String authorId = querySnapshot.docs[0]['userId'];
+        logger.d('AuthorId :  $authorId');
+
+        // Now query the users collection to get the author's name
+        DocumentSnapshot userSnapshot =
+            await _firestore.collection('User').doc(authorId).get();
+
+        // Return the author's name
+        return userSnapshot.exists
+            ? userSnapshot['userName'] ?? 'Unknown'
+            : 'Unknown';
+      } else {
+        throw Exception('Article with ID $articleId not found');
+      }
+    } catch (e) {
+      // Handle error
+      LogData.addErrorLog('Error getting article author: $e');
+      return 'Unknown'; // Return a default value or handle gracefully
     }
   }
 
@@ -146,17 +179,24 @@ class ArticleDatabaseMethods {
   }
 
   // Delete article
-  Future<void> deleteArticle(String articleId) async {
+  void deleteArticle(String articleId) async {
     try {
-      await _firestore.collection(_articlesCollection).doc(articleId).delete();
+      QuerySnapshot querySnapshot = await _firestore
+          .collection(_articlesCollection)
+          .where('articleId', isEqualTo: articleId)
+          .get();
 
-      // Log debug message
-      LogData.addDebugLog('Article deleted successfully');
+      // Check if any documents match the query
+      if (querySnapshot.docs.isNotEmpty) {
+        // Delete the document found by the query
+        querySnapshot.docs.first.reference.delete();
+        logger.d('Article with articleId $articleId deleted successfully.');
+      } else {
+        logger.e('No article found with articleId $articleId.');
+      }
     } catch (e) {
-      Logger().e('Error deleting article: $e');
-      // Log error message
-      LogData.addErrorLog('Error deleting article: $e');
-      // Handle error as per your application's requirements
+      // Handle errors
+      logger.e('Error deleting article: $e');
     }
   }
 
